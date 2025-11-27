@@ -1,129 +1,86 @@
 /**
  * Camera Controller Component
- * Manages camera access and video feed display
+ * Manages simulated camera feed for demo
  * Implements Requirements 1.1, 2.1
  */
 
 /**
- * CameraController handles camera access and frame capture
+ * CameraController handles simulated camera feed and frame capture
  */
 export class CameraController {
-  private videoElement: HTMLVideoElement | null = null;
   private canvasElement: HTMLCanvasElement | null = null;
-  private stream: MediaStream | null = null;
+  private displayCanvas: HTMLCanvasElement | null = null;
   private isActive = false;
   private frameCallbacks: ((frame: ImageData) => void)[] = [];
   private startCallbacks: (() => void)[] = [];
   private stopCallbacks: (() => void)[] = [];
   private captureInterval: number | null = null;
+  private animationFrame: number | null = null;
+  private time = 0;
 
   /**
    * Initialize the camera controller
    */
   async initialize(): Promise<void> {
-    this.videoElement = document.getElementById('camera-feed') as HTMLVideoElement;
-    this.canvasElement = document.getElementById('cv-overlay') as HTMLCanvasElement;
-    
-    if (!this.videoElement) {
-      throw new Error('Camera video element not found');
+    // Get the display canvas (replaces video element)
+    const container = document.getElementById('camera-container');
+    if (!container) {
+      throw new Error('Camera container not found');
     }
+
+    // Create display canvas for simulated feed
+    this.displayCanvas = document.createElement('canvas');
+    this.displayCanvas.id = 'camera-feed';
+    this.displayCanvas.width = 640;
+    this.displayCanvas.height = 480;
+    this.displayCanvas.style.maxWidth = '100%';
+    this.displayCanvas.style.maxHeight = '100%';
+    this.displayCanvas.style.display = 'block';
+    
+    // Remove video element if it exists
+    const oldVideo = document.getElementById('camera-feed');
+    if (oldVideo) {
+      oldVideo.remove();
+    }
+    
+    container.insertBefore(this.displayCanvas, container.firstChild);
+    
+    // Get overlay canvas
+    this.canvasElement = document.getElementById('cv-overlay') as HTMLCanvasElement;
     if (!this.canvasElement) {
       throw new Error('Canvas overlay element not found');
     }
+    
+    // Match overlay size to display
+    this.canvasElement.width = 640;
+    this.canvasElement.height = 480;
   }
 
   /**
-   * Start the camera and begin frame capture
+   * Start the simulated camera feed
    */
   async start(): Promise<void> {
     if (this.isActive) {
       return;
     }
 
-    try {
-      // Check if getUserMedia is supported
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera API not supported in this browser. Please use Chrome, Edge, or Firefox.');
-      }
+    this.isActive = true;
+    this.time = 0;
 
-      // Request camera access with fallback options
-      try {
-        // Try with environment camera first (rear camera on mobile)
-        this.stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: 640 },
-            height: { ideal: 480 },
-            facingMode: 'environment'
-          }
-        });
-      } catch (envError) {
-        // Fallback to any available camera
-        console.log('Environment camera not available, trying any camera...');
-        this.stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: 640 },
-            height: { ideal: 480 }
-          }
-        });
-      }
+    // Start animation loop for simulated feed
+    this.startAnimation();
 
-      // Attach stream to video element
-      if (this.videoElement) {
-        this.videoElement.srcObject = this.stream;
-        
-        // Wait for video to be ready
-        await new Promise<void>((resolve, reject) => {
-          if (!this.videoElement) {
-            reject(new Error('Video element not found'));
-            return;
-          }
-          
-          this.videoElement.onloadedmetadata = () => {
-            this.videoElement?.play()
-              .then(() => resolve())
-              .catch(reject);
-          };
-          
-          // Timeout after 10 seconds
-          setTimeout(() => reject(new Error('Camera initialization timeout')), 10000);
-        });
-      }
+    // Start frame capture loop
+    this.startFrameCapture();
 
-      this.isActive = true;
-
-      // Start frame capture loop
-      this.startFrameCapture();
-
-      // Notify listeners
-      this.startCallbacks.forEach(cb => cb());
-      
-      console.log('Camera started successfully');
-    } catch (error: any) {
-      console.error('Failed to start camera:', error);
-      
-      // Provide user-friendly error messages
-      let errorMessage = 'Camera access failed: ';
-      
-      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        errorMessage += 'Permission denied. Please allow camera access in your browser settings.';
-      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-        errorMessage += 'No camera found. Please connect a camera and try again.';
-      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-        errorMessage += 'Camera is already in use by another application.';
-      } else if (error.name === 'OverconstrainedError') {
-        errorMessage += 'Camera does not meet the required specifications.';
-      } else if (error.name === 'SecurityError') {
-        errorMessage += 'Camera access blocked due to security restrictions. Use HTTPS or localhost.';
-      } else {
-        errorMessage += error.message || 'Unknown error occurred.';
-      }
-      
-      throw new Error(errorMessage);
-    }
+    // Notify listeners
+    this.startCallbacks.forEach(cb => cb());
+    
+    console.log('Simulated camera started successfully');
   }
 
   /**
-   * Stop the camera and release resources
+   * Stop the simulated camera feed
    */
   stop(): void {
     if (!this.isActive) {
@@ -136,21 +93,68 @@ export class CameraController {
       this.captureInterval = null;
     }
 
-    // Stop all tracks in the stream
-    if (this.stream) {
-      this.stream.getTracks().forEach(track => track.stop());
-      this.stream = null;
-    }
-
-    // Clear video element
-    if (this.videoElement) {
-      this.videoElement.srcObject = null;
+    // Stop animation
+    if (this.animationFrame !== null) {
+      cancelAnimationFrame(this.animationFrame);
+      this.animationFrame = null;
     }
 
     this.isActive = false;
 
     // Notify listeners
     this.stopCallbacks.forEach(cb => cb());
+  }
+
+  /**
+   * Animate the simulated camera feed
+   */
+  private startAnimation(): void {
+    const animate = () => {
+      if (!this.isActive || !this.displayCanvas) {
+        return;
+      }
+
+      const ctx = this.displayCanvas.getContext('2d');
+      if (!ctx) {
+        return;
+      }
+
+      const width = this.displayCanvas.width;
+      const height = this.displayCanvas.height;
+
+      // Create a gradient background simulating low-light environment
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, `hsl(${this.time % 360}, 20%, 15%)`);
+      gradient.addColorStop(0.5, `hsl(${(this.time + 60) % 360}, 20%, 10%)`);
+      gradient.addColorStop(1, `hsl(${(this.time + 120) % 360}, 20%, 8%)`);
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+
+      // Add some "stars" or light points
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      for (let i = 0; i < 20; i++) {
+        const x = (Math.sin(this.time * 0.01 + i) * 0.5 + 0.5) * width;
+        const y = (Math.cos(this.time * 0.015 + i * 2) * 0.5 + 0.5) * height;
+        const size = Math.sin(this.time * 0.05 + i) * 2 + 3;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Add text overlay
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.font = '20px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('Simulated Low-Light Environment', width / 2, 40);
+      ctx.font = '14px monospace';
+      ctx.fillText('Apply scenarios to see different conditions', width / 2, 70);
+
+      this.time += 1;
+      this.animationFrame = requestAnimationFrame(animate);
+    };
+
+    animate();
   }
 
   /**
@@ -164,38 +168,21 @@ export class CameraController {
   }
 
   /**
-   * Capture a single frame from the video feed
+   * Capture a single frame from the simulated feed
    */
   private captureFrame(): void {
-    if (!this.videoElement || !this.canvasElement || !this.isActive) {
+    if (!this.displayCanvas || !this.isActive) {
       return;
     }
 
-    const video = this.videoElement;
-    const canvas = this.canvasElement;
-
-    // Ensure video is ready
-    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-      return;
-    }
-
-    // Set canvas size to match video
-    if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-    }
-
-    // Draw video frame to canvas
-    const ctx = canvas.getContext('2d');
+    const ctx = this.displayCanvas.getContext('2d');
     if (!ctx) {
       return;
     }
 
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Get image data
+    // Get image data from display canvas
     try {
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, this.displayCanvas.width, this.displayCanvas.height);
       
       // Notify frame callbacks
       this.frameCallbacks.forEach(cb => cb(imageData));

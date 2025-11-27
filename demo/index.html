@@ -215,16 +215,17 @@
       <div id="controls">
         <h1>NightShift Navigator</h1>
         <p style="font-size: 0.85rem; color: #888; margin-bottom: 20px;">
-          Darkness-Adaptive Navigation Demo
+          Darkness-Adaptive Navigation Demo<br>
+          <span style="color: #4a9eff;">✨ Simulated Environment - No Camera Required</span>
         </p>
 
         <div id="messages"></div>
 
         <!-- Camera Controls -->
-        <h2>Camera</h2>
+        <h2>Simulated Feed</h2>
         <div class="control-group">
-          <button id="start-camera">Start Camera</button>
-          <button id="stop-camera" disabled>Stop Camera</button>
+          <button id="start-camera">Start Simulation</button>
+          <button id="stop-camera" disabled>Stop Simulation</button>
         </div>
 
         <!-- Scenario Selection -->
@@ -232,7 +233,7 @@
         <div class="control-group">
           <label for="scenario-select">Test Scenario:</label>
           <select id="scenario-select">
-            <option value="none">None (Live Camera)</option>
+            <option value="none">None (Default)</option>
             <option value="low-light">Low Light Environment</option>
             <option value="obstacles">Multiple Obstacles</option>
             <option value="shadows">Heavy Shadows</option>

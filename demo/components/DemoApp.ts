@@ -49,9 +49,9 @@ export class DemoApp {
       this.showMessage('Demo initialized successfully. Click "Start Camera" to begin.', 'info');
       console.log('Demo initialization complete');
       
-      // Show helpful tip about camera permissions
+      // Show helpful tip
       setTimeout(() => {
-        this.showMessage('💡 Tip: Allow camera permissions when prompted by your browser.', 'info');
+        this.showMessage('💡 Tip: Try different scenarios to see how the system adapts to various conditions.', 'info');
       }, 2000);
     } catch (error) {
       console.error('Demo initialization failed:', error);
