@@ -41,19 +41,52 @@ export class CameraController {
     }
 
     try {
-      // Request camera access
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          facingMode: 'environment' // Prefer rear camera on mobile
-        }
-      });
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API not supported in this browser. Please use Chrome, Edge, or Firefox.');
+      }
+
+      // Request camera access with fallback options
+      try {
+        // Try with environment camera first (rear camera on mobile)
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            facingMode: 'environment'
+          }
+        });
+      } catch (envError) {
+        // Fallback to any available camera
+        console.log('Environment camera not available, trying any camera...');
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          }
+        });
+      }
 
       // Attach stream to video element
       if (this.videoElement) {
         this.videoElement.srcObject = this.stream;
-        await this.videoElement.play();
+        
+        // Wait for video to be ready
+        await new Promise<void>((resolve, reject) => {
+          if (!this.videoElement) {
+            reject(new Error('Video element not found'));
+            return;
+          }
+          
+          this.videoElement.onloadedmetadata = () => {
+            this.videoElement?.play()
+              .then(() => resolve())
+              .catch(reject);
+          };
+          
+          // Timeout after 10 seconds
+          setTimeout(() => reject(new Error('Camera initialization timeout')), 10000);
+        });
       }
 
       this.isActive = true;
@@ -63,9 +96,29 @@ export class CameraController {
 
       // Notify listeners
       this.startCallbacks.forEach(cb => cb());
-    } catch (error) {
+      
+      console.log('Camera started successfully');
+    } catch (error: any) {
       console.error('Failed to start camera:', error);
-      throw new Error(`Camera access denied or unavailable: ${(error as Error).message}`);
+      
+      // Provide user-friendly error messages
+      let errorMessage = 'Camera access failed: ';
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage += 'Permission denied. Please allow camera access in your browser settings.';
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        errorMessage += 'No camera found. Please connect a camera and try again.';
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        errorMessage += 'Camera is already in use by another application.';
+      } else if (error.name === 'OverconstrainedError') {
+        errorMessage += 'Camera does not meet the required specifications.';
+      } else if (error.name === 'SecurityError') {
+        errorMessage += 'Camera access blocked due to security restrictions. Use HTTPS or localhost.';
+      } else {
+        errorMessage += error.message || 'Unknown error occurred.';
+      }
+      
+      throw new Error(errorMessage);
     }
   }
 

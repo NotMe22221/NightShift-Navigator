@@ -46,8 +46,13 @@ export class DemoApp {
       this.setupEventHandlers();
 
       this.initialized = true;
-      this.showMessage('Demo initialized successfully', 'info');
+      this.showMessage('Demo initialized successfully. Click "Start Camera" to begin.', 'info');
       console.log('Demo initialization complete');
+      
+      // Show helpful tip about camera permissions
+      setTimeout(() => {
+        this.showMessage('💡 Tip: Allow camera permissions when prompted by your browser.', 'info');
+      }, 2000);
     } catch (error) {
       console.error('Demo initialization failed:', error);
       throw error;
@@ -59,10 +64,15 @@ export class DemoApp {
    */
   private setupEventHandlers(): void {
     // Camera controls
-    this.controlPanel.onStartCamera(() => {
-      this.cameraController.start().catch((error) => {
-        this.showMessage(`Camera error: ${error.message}`, 'error');
-      });
+    this.controlPanel.onStartCamera(async () => {
+      try {
+        this.showMessage('Starting camera...', 'info');
+        await this.cameraController.start();
+      } catch (error: any) {
+        console.error('Camera start error:', error);
+        this.showMessage(error.message || 'Failed to start camera', 'error');
+        this.controlPanel.setCameraActive(false);
+      }
     });
 
     this.controlPanel.onStopCamera(() => {
