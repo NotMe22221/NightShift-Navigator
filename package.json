@@ -1,0 +1,83 @@
+{
+  "name": "nightshift-navigator",
+  "version": "0.1.0",
+  "description": "A darkness-adaptive navigation system for mobile devices",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./sensor-fusion": {
+      "import": "./dist/sensor-fusion/index.js",
+      "types": "./dist/sensor-fusion/index.d.ts"
+    },
+    "./computer-vision": {
+      "import": "./dist/computer-vision/index.js",
+      "types": "./dist/computer-vision/index.d.ts"
+    },
+    "./pathfinding": {
+      "import": "./dist/pathfinding/index.js",
+      "types": "./dist/pathfinding/index.d.ts"
+    },
+    "./ar-overlay": {
+      "import": "./dist/ar-overlay/index.js",
+      "types": "./dist/ar-overlay/index.d.ts"
+    },
+    "./audio": {
+      "import": "./dist/audio/index.js",
+      "types": "./dist/audio/index.d.ts"
+    },
+    "./energy": {
+      "import": "./dist/energy/index.js",
+      "types": "./dist/energy/index.d.ts"
+    },
+    "./plugin-api": {
+      "import": "./dist/plugin-api/index.js",
+      "types": "./dist/plugin-api/index.d.ts"
+    },
+    "./error-handling": {
+      "import": "./dist/error-handling/index.js",
+      "types": "./dist/error-handling/index.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types/index.js",
+      "types": "./dist/types/index.d.ts"
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs-backend-webgl": "^4.15.0",
+    "@tensorflow/tfjs-core": "^4.15.0",
+    "rxjs": "^7.8.1",
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "@types/geojson": "^7946.0.16",
+    "@types/three": "^0.160.0",
+    "fake-indexeddb": "^6.2.5",
+    "fast-check": "^3.15.0",
+    "jsdom": "^27.2.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10",
+    "vitest": "^1.1.0"
+  },
+  "keywords": [
+    "navigation",
+    "ar",
+    "computer-vision",
+    "accessibility",
+    "low-light"
+  ],
+  "author": "",
+  "license": "MIT"
+}

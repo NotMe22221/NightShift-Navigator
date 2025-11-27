@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NightShift Navigator - Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: #1a1a1a;
+        color: #e0e0e0;
+        line-height: 1.6;
+      }
+
+      #app {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      /* Control Panel */
+      #controls {
+        background: #2a2a2a;
+        padding: 20px;
+        overflow-y: auto;
+        border-right: 1px solid #3a3a3a;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+        color: #4a9eff;
+      }
+
+      h2 {
+        font-size: 1.1rem;
+        margin: 20px 0 10px 0;
+        color: #6ab7ff;
+        border-bottom: 1px solid #3a3a3a;
+        padding-bottom: 5px;
+      }
+
+      .control-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 0.9rem;
+        color: #b0b0b0;
+      }
+
+      button {
+        width: 100%;
+        padding: 10px;
+        margin: 5px 0;
+        background: #4a9eff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: background 0.2s;
+      }
+
+      button:hover {
+        background: #3a8eef;
+      }
+
+      button:disabled {
+        background: #555;
+        cursor: not-allowed;
+      }
+
+      button.danger {
+        background: #ff4a4a;
+      }
+
+      button.danger:hover {
+        background: #ef3a3a;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        margin: 5px 0;
+      }
+
+      input[type="checkbox"] {
+        margin-right: 8px;
+      }
+
+      select {
+        width: 100%;
+        padding: 8px;
+        background: #3a3a3a;
+        color: #e0e0e0;
+        border: 1px solid #4a4a4a;
+        border-radius: 4px;
+        margin: 5px 0;
+      }
+
+      .metric {
+        display: flex;
+        justify-content: space-between;
+        padding: 5px 0;
+        font-size: 0.85rem;
+      }
+
+      .metric-label {
+        color: #b0b0b0;
+      }
+
+      .metric-value {
+        color: #4a9eff;
+        font-weight: bold;
+      }
+
+      /* Display Area */
+      #display {
+        display: flex;
+        flex-direction: column;
+        background: #1a1a1a;
+      }
+
+      #camera-container {
+        flex: 1;
+        position: relative;
+        background: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #camera-feed {
+        max-width: 100%;
+        max-height: 100%;
+        display: block;
+      }
+
+      #cv-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+      }
+
+      #status-bar {
+        background: #2a2a2a;
+        padding: 10px 20px;
+        border-top: 1px solid #3a3a3a;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .status-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #555;
+      }
+
+      .status-indicator.active {
+        background: #4aff4a;
+        box-shadow: 0 0 10px #4aff4a;
+      }
+
+      .error-message {
+        background: #ff4a4a;
+        color: white;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        font-size: 0.9rem;
+      }
+
+      .info-message {
+        background: #4a9eff;
+        color: white;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        font-size: 0.9rem;
+      }
+
+      @media (max-width: 768px) {
+        #app {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto 1fr;
+        }
+
+        #controls {
+          max-height: 40vh;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <!-- Control Panel -->
+      <div id="controls">
+        <h1>NightShift Navigator</h1>
+        <p style="font-size: 0.85rem; color: #888; margin-bottom: 20px;">
+          Darkness-Adaptive Navigation Demo
+        </p>
+
+        <div id="messages"></div>
+
+        <!-- Camera Controls -->
+        <h2>Camera</h2>
+        <div class="control-group">
+          <button id="start-camera">Start Camera</button>
+          <button id="stop-camera" disabled>Stop Camera</button>
+        </div>
+
+        <!-- Scenario Selection -->
+        <h2>Scenarios</h2>
+        <div class="control-group">
+          <label for="scenario-select">Test Scenario:</label>
+          <select id="scenario-select">
+            <option value="none">None (Live Camera)</option>
+            <option value="low-light">Low Light Environment</option>
+            <option value="obstacles">Multiple Obstacles</option>
+            <option value="shadows">Heavy Shadows</option>
+            <option value="night">Night Navigation</option>
+          </select>
+          <button id="apply-scenario">Apply Scenario</button>
+        </div>
+
+        <!-- Module Toggles -->
+        <h2>Modules</h2>
+        <div class="control-group">
+          <label>
+            <input type="checkbox" id="toggle-cv" checked>
+            Computer Vision
+          </label>
+          <label>
+            <input type="checkbox" id="toggle-ar" checked>
+            AR Overlay
+          </label>
+          <label>
+            <input type="checkbox" id="toggle-audio" checked>
+            Audio Guidance
+          </label>
+        </div>
+
+        <!-- Energy Mode -->
+        <h2>Energy Mode</h2>
+        <div class="control-group">
+          <label for="energy-mode">Power Mode:</label>
+          <select id="energy-mode">
+            <option value="normal">Normal</option>
+            <option value="low_power">Low Power</option>
+            <option value="critical">Critical</option>
+          </select>
+          <label for="battery-level">Battery Level: <span id="battery-value">100</span>%</label>
+          <input type="range" id="battery-level" min="0" max="100" value="100">
+        </div>
+
+        <!-- Navigation Controls -->
+        <h2>Navigation</h2>
+        <div class="control-group">
+          <button id="start-route">Start Route</button>
+          <button id="stop-route" disabled>Stop Route</button>
+          <button id="simulate-hazard">Simulate Hazard</button>
+        </div>
+
+        <!-- System Metrics -->
+        <h2>System Metrics</h2>
+        <div id="metrics">
+          <div class="metric">
+            <span class="metric-label">CV FPS:</span>
+            <span class="metric-value" id="cv-fps">0</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">AR FPS:</span>
+            <span class="metric-value" id="ar-fps">0</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Light Level:</span>
+            <span class="metric-value" id="light-level">0</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Hazards:</span>
+            <span class="metric-value" id="hazard-count">0</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Memory:</span>
+            <span class="metric-value" id="memory-usage">0 MB</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Display Area -->
+      <div id="display">
+        <div id="camera-container">
+          <video id="camera-feed" autoplay playsinline></video>
+          <canvas id="cv-overlay"></canvas>
+        </div>
+        <div id="status-bar">
+          <div class="status-item">
+            <div class="status-indicator" id="camera-status"></div>
+            <span>Camera</span>
+          </div>
+          <div class="status-item">
+            <div class="status-indicator" id="cv-status"></div>
+            <span>CV Pipeline</span>
+          </div>
+          <div class="status-item">
+            <div class="status-indicator" id="ar-status"></div>
+            <span>AR Overlay</span>
+          </div>
+          <div class="status-item">
+            <div class="status-indicator" id="audio-status"></div>
+            <span>Audio</span>
+          </div>
+          <div class="status-item">
+            <div class="status-indicator" id="nav-status"></div>
+            <span>Navigation</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/demo/main.ts"></script>
+  </body>
+</html>
